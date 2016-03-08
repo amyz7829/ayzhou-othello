@@ -48,12 +48,13 @@ public:
     void setBoard(char data[]);
     
     std::vector<Move*> return_moves(Side side);
-    //Move* return_best_move_heuristic(Side side);
+    Move* return_best_move_heuristic(Side side);
     Move* return_minmax_move(Side side);
 };
 
 struct minmax_move{
-	Move * parent;
+	minmax_move * parent;
+	Move * move;
 	int score;
 	Board * board;
 };

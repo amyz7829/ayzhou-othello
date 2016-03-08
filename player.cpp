@@ -45,9 +45,16 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
     //have the opponent's move placed on the board before deciding anything
     board->doMove(opponentsMove, opponent_side);
    
-   //find best move
-    Move* move = board->return_minmax_move(my_side);
-    
+    //early-mid game, use the heuristic. Late game begin to use the minmax tree
+    if(board->countWhite() + board->countBlack() < 40)
+    {
+		Move* move = board->return_best_move_heuristic(my_side);
+	}
+	else
+	{
+		Move* move = board->return_minmax_move(my_side);
+	}
+	
     board->doMove(move, my_side);
 	
 	return move;
