@@ -142,7 +142,7 @@ void Board::doMove(Move *m, Side side) {
 }
 
 /*
- * Given the current board, find the vector of valid moves for the given
+ * Given the current board, find the valid moves for the given
  * side.
  */
 std::vector<Move*> Board::return_moves(Side side)
@@ -156,13 +156,100 @@ std::vector<Move*> Board::return_moves(Side side)
             if (checkMove(move, side))
             {
 				moves.push_back(move);
-			}
-				
+			}	
         }
     }
     return moves;
 }
+
+/*
+ * A basic heuristic function that "ranks" the moves out of the current
+ * valid moves. Does not think ahead.
+ */
+  
+/*Move* Board::return_best_move_heuristic(Side side)
+{					  	
+	Move* best_move = NULL;
+	int best_move_score = -10;
 	
+	std::vector<Move*> moves = return_moves(side);
+	
+	for(int i = 0; i < moves.size(); i++)
+	{
+		//first check if the move is in a corner
+		bool is_corner;
+		
+		for(int j = 0; j < 4; j++)
+		{
+			if(moves[i]->x == corners[j].x && moves[i]->y == corners[j].y)
+			{
+				is_corner = true;
+			}
+		}
+		
+		if(is_corner)
+		{
+			//corner is the best place! if a corner is chosen, the best move is the corner by default (score 3)
+			best_move = moves[i];
+			best_move_score = 3;
+		}
+		else
+		{
+			//if not in a corner, check if it's next to one
+			bool is_adj_to_corner;
+		
+			for(int j = 0; j < 4; j++)
+			{
+				if(moves[i]->x == adj_to_corners[j].x && moves[i]->y == adj_to_corners[j].y)
+				{
+					is_adj_to_corner = true;
+				}
+			}
+			
+			if(is_adj_to_corner)
+			{
+				//we only want to pick a move adjacent to the corner if there are no other options, so give it score -1
+				if (best_move_score < -1)
+				{
+					best_move_score = -1;
+					best_move = moves[i];
+				}
+			}
+			else
+			{
+				//edges are pretty good, just not as good as corners (score 2)
+				bool is_edge;
+		
+				for(int j = 0; j < 4; j++)
+				{
+					if(moves[i]->x == edges[j].x && moves[i]->y == edges[j].y)
+					{
+						is_edge = true;
+					}
+				}
+				if(is_edge)
+				{
+					if (best_move_score < 2)
+					{
+						best_move_score = 2;
+						best_move = moves[i];
+					}
+				}
+				else
+				{
+					//all other moves are just score 0
+					if(best_move_score < 0)
+					{
+						best_move_score = 0;
+						best_move = moves[i];
+					}
+				}
+			}
+		}
+	}
+	
+	return best_move;
+}*/			
 /*
  * Current count of given side's stones.
  */
@@ -200,3 +287,114 @@ void Board::setBoard(char data[]) {
         }
     }
 }
+
+/*
+ * Finds the best move by using the minmax algorithm. Goes down four levels
+ * (your move -> opponent -> you ->opponent
+ */ 
+Move* Board::return_minmax_move(Side side)
+{
+	std::vector<Move*> my_moves = return_moves(side);
+	std::vector<minmax_move*> first_level_moves;
+	
+	//construct tree of first level moves (after we make our move)
+	for(int i = 0; i < my_moves.size(); i++)
+	{
+		minmax_move* move = new minmax_move();
+		move->parent = my_moves[i];
+		
+		//create a new board with the move done on it to count the score
+		Board * new_board = copy();
+		new_board->doMove(my_moves[i], side);
+		
+		move->board = new_board;
+		
+		first_level_moves.push_back(move);
+	}
+	
+	
+	/*
+	 * For each first level move, find all of its "children" moves. For each
+	 * parent move, find the minimum child score, and reassign the score of the parent 
+	 * to the minimum score of its children.
+	 */ 
+	for(int i = 0; i < first_level_moves.size(); i++)
+	{	
+		 std::vector<Move*> opponent_moves; //"children" moves
+		 if(side == WHITE)
+		 {
+			 opponent_moves = first_level_moves[i]->board->return_moves(BLACK);
+		 }
+		 else
+		 {
+			 opponent_moves = first_level_moves[i]->board->return_moves(WHITE);
+		 }
+		 
+		 int min_score = 999; // set impossibly high at first
+		 
+		 for(int j = 0; j < opponent_moves.size(); j++)
+		 {
+			 //create a new board with the move done on it to count the score
+			 Board * new_board = first_level_moves[i]->board;
+			 if(side == WHITE)
+			 {
+				new_board->doMove(opponent_moves[j], BLACK);
+			 }
+			 else
+			 {
+				 new_board->doMove(opponent_moves[j], WHITE);
+			 }
+				
+			 int black = new_board->countBlack();
+			 int white = new_board->countWhite();
+			 int score;
+			 
+	 		 if(side == WHITE)
+	 		 {
+	 		 	 score = white - black;
+	 	 	 } 
+	 		 else
+	 		 {
+				 score = black - white;
+			 }
+			 
+			  
+			 if(score < min_score)
+			 {
+				 min_score = score;
+			 }
+			 /*std::cerr<<"Min score: ";
+			  std::cerr<<min_score<<endl;
+			  * */
+		 }
+		 
+		 first_level_moves[i]->score = min_score;
+	 }
+	 
+	 //find best move based on maxing the min_score
+	 
+	 Move * best_move = NULL;
+	 int max_score = -999;
+	 
+	 for(int i = 0; i < first_level_moves.size(); i++)
+	 {
+		 /*std::cerr<<"Max score: ";
+		 std::cerr<<max_score<<endl;
+		 * */
+		 if (first_level_moves[i]->score > max_score)
+		 {
+			 best_move = first_level_moves[i]->parent;
+			 max_score = first_level_moves[i]->score;
+		 }
+	 }
+	 
+	 return best_move;
+ }
+	 
+	 
+	 
+
+			 
+			
+		
+		

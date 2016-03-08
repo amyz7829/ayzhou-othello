@@ -45,21 +45,11 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
     //have the opponent's move placed on the board before deciding anything
     board->doMove(opponentsMove, opponent_side);
    
-   //generate list of valid moves
-    std::vector<Move*> moves;
+   //find best move
+    Move* move = board->return_minmax_move(my_side);
     
-	for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            Move* move = new Move(i, j);
-            if (board->checkMove(move, my_side))
-            {
-				moves.push_back(move);
-			}
-				
-        }
-    }
-    
-    board->doMove(moves[0], my_side);
-    return moves[0];
+    board->doMove(move, my_side);
+	
+	return move;
     
 }
