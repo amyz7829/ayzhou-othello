@@ -3,10 +3,9 @@
 
 #include <bitset>
 #include <vector>
-#include <algorithm>
-#include <iterator>
 #include <iostream>
 #include "common.h"
+#include "alphabeta.h"
 
 using namespace std;
 
@@ -49,7 +48,9 @@ public:
     
     std::vector<Move*> return_moves(Side side);
     Move* return_best_move_heuristic(Side side);
+    alphabeta_move* return_alphabeta_move(Board* board, bool myPlayer, Side side, int alpha, int beta, int depth);
     Move* return_minmax_move(Side side);
+    Move* return_minmax_move_better(Side side, int depth);
 };
 
 struct minmax_move{
@@ -58,4 +59,5 @@ struct minmax_move{
 	int score;
 	Board * board;
 };
+
 #endif
